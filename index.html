@@ -747,7 +747,8 @@ ${d.avfall || d.maks5dekk ? '\nOBS: Bilen inneholder avfall eller mer enn 5 dekk
 Se vedlegg for signert skjema og kopi av legitimasjon.`;
 
     const emne = `Mottakskontroll vrakbil – ${d.regnr || d.navn || 'ny'}`;
-    window.location.href = `mailto:${encodeURIComponent(d.epost)}?subject=${encodeURIComponent(emne)}&body=${encodeURIComponent(kropp)}`;
+    const cc = d.epost ? `&cc=${encodeURIComponent(d.epost)}` : '';
+    window.location.href = `mailto:kabel%40metallco.com?subject=${encodeURIComponent(emne)}&body=${encodeURIComponent(kropp)}${cc}`;
 
     // Generer og last ned komplett signert skjema som HTML-vedlegg
     setTimeout(() => lastNedSkjema(d, sigKunde, sigMetallco), 400);
