@@ -655,19 +655,29 @@
       return `${fornavn} ${etternavn}`;
     }
 
-    // 2. "Navn:" eller "Name:" etikett
+    // 2. EU-førerkort/-sertifikat: felt 1 = etternavn, felt 2 = fornavn (separate linjer)
+    // OCR kan lese "." som "," eller mellomrom
+    const felt1 = text.match(/\b1[.,\s]\s*([A-ZÆØÅ]{2,30})\b/);
+    const felt2 = text.match(/\b2[.,\s]\s*([A-ZÆØÅ][A-ZÆØÅa-zæøå]{1,20}(?:[ \-][A-ZÆØÅ][A-ZÆØÅa-zæøå]{1,20})*)/);
+    if (felt1 && felt2) {
+      const etternavn = felt1[1].trim();
+      const fornavn = felt2[1].trim().split(/\s+/)[0];
+      return `${fornavn} ${etternavn}`;
+    }
+    if (felt1 && !felt2) return felt1[1].trim();
+
+    // 3. "Navn:" eller "Name:" etikett
     const navnLinje = text.match(/(?:Navn|Name|NAVN|NAME)\s*[:\-]\s*([A-ZÆØÅ][a-zæøå]+(?:[ \-][A-ZÆØÅ][a-zæøå]+){0,3})/);
     if (navnLinje) return navnLinje[1].trim();
 
-    // 3. Norsk førerkort-format: "2. ETTERNAVN Fornavn"
-    const fk = text.match(/2\.\s+([A-ZÆØÅ]{2,20})\s+([A-ZÆØÅ][a-zæøå]{1,15})/);
-    if (fk) return `${fk[2]} ${fk[1]}`;
-
-    // 4. Bankkort / bankID – første linje med to store ord
+    // 4. Første linje med to stor-bokstav-ord (bankkort, ID-kort)
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    for (const line of lines.slice(0, 8)) {
+    for (const line of lines.slice(0, 10)) {
       const m = line.match(/^([A-ZÆØÅ][a-zæøå]{1,15})\s+([A-ZÆØÅ][a-zæøå]{1,20})$/);
       if (m) return `${m[1]} ${m[2]}`;
+      // Alle store bokstaver (f.eks. HANSEN OLE)
+      const caps = line.match(/^([A-ZÆØÅ]{2,15})\s+([A-ZÆØÅ]{2,20})$/);
+      if (caps && !line.match(/^\d/)) return caps[1] + ' ' + caps[2];
     }
 
     return null;
