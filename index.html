@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mottakskontroll - Vrakbil | Metallco Kabel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+      overflow: hidden;
+    }
+
+    .header {
+      background: #1a1a1a;
+      padding: 28px 36px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { width: 48px; height: 48px; }
+    .logo-text { display: flex; flex-direction: column; line-height: 1; }
+    .logo-text .brand { font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #fff; text-transform: uppercase; }
+    .logo-text .sub { font-size: 12px; letter-spacing: 4px; color: #aaa; text-transform: uppercase; margin-top: 2px; }
+    .header h1 { font-size: 17px; font-weight: 600; letter-spacing: 2px; color: #ccc; text-transform: uppercase; margin-top: 6px; }
+
+    .body { padding: 28px 32px 36px; }
+
+    .section { margin-bottom: 24px; }
+
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: #888; margin-bottom: 12px;
+      padding-bottom: 6px; border-bottom: 1.5px solid #e5e7eb;
+    }
+
+    .field-group { display: flex; flex-direction: column; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .field input[type="text"],
+    .field input[type="email"],
+    .field input[type="tel"],
+    .field input[type="date"] {
+      border: 1.5px solid #d1d5db; border-radius: 6px;
+      padding: 9px 12px; font-size: 14px; color: #1a1a1a;
+      transition: border-color 0.15s; width: 100%; background: #fafafa;
+    }
+
+    .field input:focus { outline: none; border-color: #1a1a1a; background: #fff; }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* --- Legitimasjon --- */
+    .leg-capture-area {
+      border: 1.5px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 16px;
+      background: #fafafa;
+    }
+
+    #legFileInput { display: none; }
+
+    .btn-camera {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: #1a1a1a;
+      color: #fff;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s;
+    }
+    .btn-camera:hover { background: #333; }
+
+    .leg-preview { margin-top: 14px; display: none; }
+
+    .leg-img-wrap {
+      position: relative;
+      display: inline-block;
+      border-radius: 8px;
+      overflow: hidden;
+      max-width: 100%;
+    }
+
+    #legImg {
+      display: block;
+      max-width: 100%;
+      max-height: 220px;
+      border-radius: 8px;
+      border: 1.5px solid #e5e7eb;
+    }
+
+    .leg-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+    }
+
+    .ocr-spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .ocr-status-bar {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    #ocrStatus {
+      font-size: 13px;
+      color: #555;
+      flex: 1;
+    }
+
+    #ocrStatus.ok { color: #16a34a; font-weight: 600; }
+    #ocrStatus.err { color: #dc2626; }
+
+    .btn-clear {
+      font-size: 12px;
+      color: #888;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
+
+    /* --- Checklist --- */
+    .checklist { border: 1.5px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+
+    .check-header {
+      display: grid; grid-template-columns: 1fr 72px 72px;
+      background: #f3f4f6; border-bottom: 1.5px solid #e5e7eb; padding: 8px 14px;
+    }
+
+    .check-header span { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #888; text-align: center; }
+    .check-header span:first-child { text-align: left; }
+
+    .check-row {
+      display: grid; grid-template-columns: 1fr 72px 72px;
+      padding: 11px 14px; border-bottom: 1px solid #f3f4f6;
+      align-items: center; transition: background 0.1s;
+    }
+
+    .check-row:last-child { border-bottom: none; }
+    .check-row:hover { background: #fafafa; }
+    .check-row .check-label { font-size: 14px; color: #1a1a1a; }
+    .check-row .radio-cell { display: flex; justify-content: center; }
+
+    .radio-btn {
+      appearance: none; -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border: 2px solid #d1d5db; border-radius: 50%;
+      cursor: pointer; transition: all 0.15s; position: relative;
+    }
+
+    .radio-btn.ja:checked { border-color: #16a34a; background: #16a34a; }
+    .radio-btn.nei:checked { border-color: #dc2626; background: #dc2626; }
+
+    .radio-btn:checked::after {
+      content: ''; position: absolute;
+      width: 8px; height: 8px; background: #fff; border-radius: 50%;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+    }
+
+    /* --- Warning --- */
+    .warning {
+      background: #fff7f7; border: 1.5px solid #fecaca;
+      border-radius: 8px; padding: 12px 16px;
+      font-size: 13px; color: #dc2626; font-weight: 500; margin-bottom: 24px;
+    }
+
+    /* --- Signatures --- */
+    .sig-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+
+    .sig-pad { display: flex; flex-direction: column; gap: 6px; }
+
+    .sig-pad-label {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .sig-pad-label span {
+      font-size: 12px; font-weight: 600; color: #555;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .sig-clear-btn {
+      font-size: 11px; color: #aaa; background: none;
+      border: none; cursor: pointer; padding: 0;
+      text-decoration: underline;
+    }
+    .sig-clear-btn:hover { color: #555; }
+
+    .sig-canvas-wrap {
+      position: relative;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      background: #fafafa;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .sig-canvas {
+      display: block;
+      width: 100%;
+      height: 90px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .sig-placeholder {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #ccc; pointer-events: none;
+      font-style: italic;
+      transition: opacity 0.2s;
+    }
+
+    /* --- Actions --- */
+    .actions { display: flex; gap: 12px; margin-top: 28px; }
+
+    .btn {
+      flex: 1; padding: 12px; border-radius: 7px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      border: none; transition: all 0.15s; letter-spacing: 0.3px;
+    }
+
+    .btn-primary { background: #1a1a1a; color: #fff; }
+    .btn-primary:hover { background: #333; }
+
+    .btn-email { background: #0078d4; color: #fff; }
+    .btn-email:hover { background: #006cbe; }
+
+    .btn-secondary { background: #f3f4f6; color: #1a1a1a; border: 1.5px solid #e5e7eb; flex: 0 0 auto; padding: 12px 20px; }
+    .btn-secondary:hover { background: #e9ebee; }
+
+    .print-row { text-align: center; margin-top: 12px; }
+    .print-link { font-size: 12px; color: #aaa; cursor: pointer; text-decoration: underline; background: none; border: none; }
+    .print-link:hover { color: #555; }
+
+    /* --- Toast --- */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1a1a1a; color: #fff;
+      padding: 12px 20px; border-radius: 8px;
+      font-size: 14px; font-weight: 500;
+      opacity: 0; transform: translateY(10px);
+      transition: all 0.25s; pointer-events: none;
+      max-width: 320px; line-height: 1.4;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* --- Print --- */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { box-shadow: none; border-radius: 0; max-width: 100%; }
+      .actions, .print-row, .btn-camera, .btn-clear, .leg-overlay { display: none !important; }
+      .leg-capture-area { border: none; padding: 0; background: none; }
+      #legImg { max-height: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <div class="header">
+    <div class="logo">
+      <svg class="logo-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="22" stroke="#888" stroke-width="2"/>
+        <circle cx="24" cy="24" r="10" stroke="#888" stroke-width="2"/>
+        <circle cx="24" cy="24" r="3" fill="#aaa"/>
+        <line x1="24" y1="2" x2="24" y2="14" stroke="#888" stroke-width="2"/>
+        <line x1="24" y1="34" x2="24" y2="46" stroke="#888" stroke-width="2"/>
+        <line x1="2" y1="24" x2="14" y2="24" stroke="#888" stroke-width="2"/>
+        <line x1="34" y1="24" x2="46" y2="24" stroke="#888" stroke-width="2"/>
+      </svg>
+      <div class="logo-text">
+        <span class="brand">Metallco</span>
+        <span class="sub">Kabel</span>
+      </div>
+    </div>
+    <h1>Mottakskontroll &mdash; Vrakbil</h1>
+  </div>
+
+  <div class="body">
+
+    <!-- Legitimasjon -->
+    <div class="section">
+      <div class="section-label">Legitimasjon</div>
+      <div class="leg-capture-area">
+        <input type="file" id="legFileInput" accept="image/*" capture="environment" />
+        <button class="btn-camera" onclick="document.getElementById('legFileInput').click()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          Ta bilde av legitimasjon
+        </button>
+
+        <div class="leg-preview" id="legPreview">
+          <div class="leg-img-wrap">
+            <img id="legImg" alt="Legitimasjon" />
+            <div class="leg-overlay" id="ocrOverlay">
+              <div class="ocr-spinner"></div>
+            </div>
+          </div>
+          <div class="ocr-status-bar">
+            <span id="ocrStatus">Leser legitimasjon...</span>
+            <button class="btn-clear" onclick="clearLeg()">Fjern bilde</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kunde -->
+    <div class="section">
+      <div class="section-label">Fylles ut av kunde</div>
+      <div class="field-group">
+        <div class="field">
+          <label>Navn</label>
+          <input type="text" id="navn" placeholder="Fullt navn" />
+        </div>
+        <div class="field">
+          <label>Adresse</label>
+          <input type="text" id="adresse" placeholder="Gateadresse" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Postnr.</label>
+            <input type="text" id="postnr" placeholder="0000" maxlength="4" />
+          </div>
+          <div class="field">
+            <label>Sted</label>
+            <input type="text" id="sted" placeholder="By/sted" />
+          </div>
+        </div>
+        <div class="field">
+          <label>E-post</label>
+          <input type="email" id="epost" placeholder="navn@epost.no" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Telefonnummer</label>
+            <input type="tel" id="telefon" placeholder="000 00 000" />
+          </div>
+          <div class="field">
+            <label>Kontonummer</label>
+            <input type="text" id="konto" placeholder="0000.00.00000" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metallco -->
+    <div class="section">
+      <div class="section-label">Fylles ut av Metallco</div>
+      <div class="field-group">
+        <div class="field-row">
+          <div class="field">
+            <label>Regnr.</label>
+            <input type="text" id="regnr" placeholder="AB 12345" style="text-transform:uppercase" />
+          </div>
+          <div class="field">
+            <label>Bilmerke</label>
+            <input type="text" id="bilmerke" placeholder="f.eks. Volkswagen" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sjekkliste -->
+    <div class="section">
+      <div class="section-label">Bil sjekket for</div>
+      <div class="checklist">
+        <div class="check-header">
+          <span>Punkt</span><span>Ja</span><span>Nei</span>
+        </div>
+        <div id="sjekkliste"></div>
+      </div>
+    </div>
+
+    <!-- Advarsel -->
+    <div class="warning">
+      Dersom bilen inneholder avfall eller mer enn 5 dekk, trekker vi kr 500,- fra vrakpanten.
+    </div>
+
+    <!-- Dato og signaturer -->
+    <div class="section">
+      <div class="section-label">Dato og signaturer</div>
+      <div class="field" style="max-width:200px; margin-bottom:20px;">
+        <label>Dato</label>
+        <input type="date" id="dato" />
+      </div>
+      <div class="sig-row">
+        <div class="sig-pad">
+          <div class="sig-pad-label">
+            <span>Signatur kunde</span>
+            <button class="sig-clear-btn" onclick="pads.kunde.clear()">Slett</button>
+          </div>
+          <div class="sig-canvas-wrap">
+            <canvas class="sig-canvas" id="sigKunde"></canvas>
+            <div class="sig-placeholder" id="phKunde">Skriv signatur her</div>
+          </div>
+        </div>
+        <div class="sig-pad">
+          <div class="sig-pad-label">
+            <span>Signatur Metallco Kabel</span>
+            <button class="sig-clear-btn" onclick="pads.metallco.clear()">Slett</button>
+          </div>
+          <div class="sig-canvas-wrap">
+            <canvas class="sig-canvas" id="sigMetallco"></canvas>
+            <div class="sig-placeholder" id="phMetallco">Skriv signatur her</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Handlinger -->
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="nullstill()">Nullstill</button>
+      <button class="btn btn-email" onclick="sendEpost()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle;margin-right:5px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send e-post
+      </button>
+    </div>
+    <div class="print-row">
+      <button class="print-link" onclick="skriv()">Skriv ut / lagre som PDF</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ── SignaturePad ── */
+  class SignaturePad {
+    constructor(canvasId, placeholderId) {
+      this.canvas = document.getElementById(canvasId);
+      this.ph = document.getElementById(placeholderId);
+      this.ctx = this.canvas.getContext('2d');
+      this.drawing = false;
+      this.lx = 0; this.ly = 0;
+      this.empty = true;
+      this._resize();
+      this._bind();
+    }
+
+    _resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = this.canvas.offsetWidth;
+      const h = this.canvas.offsetHeight;
+      this.canvas.width = w * dpr;
+      this.canvas.height = h * dpr;
+      this.ctx.scale(dpr, dpr);
+      this.ctx.strokeStyle = '#1a1a1a';
+      this.ctx.lineWidth = 2;
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
+    }
+
+    _pos(e) {
+      const r = this.canvas.getBoundingClientRect();
+      const src = e.touches ? e.touches[0] : e;
+      return { x: src.clientX - r.left, y: src.clientY - r.top };
+    }
+
+    _start(e) {
+      e.preventDefault();
+      this.drawing = true;
+      const p = this._pos(e);
+      this.ctx.beginPath();
+      this.ctx.moveTo(p.x, p.y);
+      this.lx = p.x; this.ly = p.y;
+    }
+
+    _move(e) {
+      if (!this.drawing) return;
+      e.preventDefault();
+      const p = this._pos(e);
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.lx, this.ly);
+      this.ctx.lineTo(p.x, p.y);
+      this.ctx.stroke();
+      this.lx = p.x; this.ly = p.y;
+      if (this.empty) { this.empty = false; this.ph.style.opacity = '0'; }
+    }
+
+    _stop() { this.drawing = false; }
+
+    _bind() {
+      const c = this.canvas;
+      c.addEventListener('mousedown',  e => this._start(e));
+      c.addEventListener('mousemove',  e => this._move(e));
+      c.addEventListener('mouseup',    () => this._stop());
+      c.addEventListener('mouseleave', () => this._stop());
+      c.addEventListener('touchstart', e => this._start(e), { passive: false });
+      c.addEventListener('touchmove',  e => this._move(e),  { passive: false });
+      c.addEventListener('touchend',   () => this._stop());
+    }
+
+    clear() {
+      const dpr = window.devicePixelRatio || 1;
+      this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+      this.empty = true;
+      this.ph.style.opacity = '1';
+    }
+
+    toDataURL() { return this.empty ? null : this.canvas.toDataURL('image/png'); }
+  }
+
+  const pads = {};
+
+  window.addEventListener('load', () => {
+    pads.kunde    = new SignaturePad('sigKunde',    'phKunde');
+    pads.metallco = new SignaturePad('sigMetallco', 'phMetallco');
+  });
+
+  /* ── Sjekkliste ── */
+  const punkter = [
+    'Chassisnummer sjekket', 'Vognkort', 'Skilt levert her',
+    'Avfall', 'Maks fem ekstra dekk', 'Lekkasje', 'Gass'
+  ];
+
+  const liste = document.getElementById('sjekkliste');
+  punkter.forEach((tekst, i) => {
+    const rad = document.createElement('div');
+    rad.className = 'check-row';
+    rad.innerHTML = `
+      <span class="check-label">${tekst}</span>
+      <div class="radio-cell"><input type="radio" class="radio-btn ja" name="sjekk_${i}" value="ja" /></div>
+      <div class="radio-cell"><input type="radio" class="radio-btn nei" name="sjekk_${i}" value="nei" /></div>`;
+    liste.appendChild(rad);
+  });
+
+  document.getElementById('dato').valueAsDate = new Date();
+  document.getElementById('regnr').addEventListener('input', e => {
+    e.target.value = e.target.value.toUpperCase();
+  });
+
+  /* ── Legitimasjon / OCR ── */
+  let legDataUrl = null;
+  let tesseractReady = false;
+
+  document.getElementById('legFileInput').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      legDataUrl = ev.target.result;
+      const img = document.getElementById('legImg');
+      img.src = legDataUrl;
+
+      const preview = document.getElementById('legPreview');
+      preview.style.display = 'block';
+      document.getElementById('ocrOverlay').style.display = 'flex';
+      setOCRStatus('Leser legitimasjon...', '');
+
+      await runOCR(img);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  });
+
+  async function runOCR(imgEl) {
+    try {
+      if (!tesseractReady) {
+        setOCRStatus('Laster OCR-motor...', '');
+        await loadTesseract();
+      }
+
+      setOCRStatus('Analyserer bilde...', '');
+
+      const result = await Tesseract.recognize(imgEl, 'nor+eng');
+      const text = result.data.text;
+
+      const navn = trekkUtNavn(text);
+      const adresse = trekkUtAdresse(text);
+
+      if (navn) {
+        document.getElementById('navn').value = navn;
+      }
+      if (adresse.gate) document.getElementById('adresse').value = adresse.gate;
+      if (adresse.postnr) document.getElementById('postnr').value = adresse.postnr;
+      if (adresse.sted) document.getElementById('sted').value = adresse.sted;
+
+      document.getElementById('ocrOverlay').style.display = 'none';
+
+      if (navn) {
+        setOCRStatus(`Navn lest: ${navn}`, 'ok');
+      } else {
+        setOCRStatus('Navn ikke gjenkjent – fyll inn manuelt', 'err');
+      }
+
+    } catch (err) {
+      document.getElementById('ocrOverlay').style.display = 'none';
+      setOCRStatus('Kunne ikke lese bildet. Fyll inn manuelt.', 'err');
+    }
+  }
+
+  function trekkUtNavn(text) {
+    // 1. Pass-MRZ: P<NOR ETTERNAVN<<FORNAVN
+    const mrz = text.match(/P[<](?:NOR|SWE|DNK|FIN|GBR|DEU|FRA|ESP|ITA)([A-Z]{2,20})<<([A-Z<]{2,30})/);
+    if (mrz) {
+      const etternavn = mrz[1];
+      const fornavn = mrz[2].replace(/</g, ' ').trim().split(' ')[0];
+      return `${fornavn} ${etternavn}`;
+    }
+
+    // 2. "Navn:" eller "Name:" etikett
+    const navnLinje = text.match(/(?:Navn|Name|NAVN|NAME)\s*[:\-]\s*([A-ZÆØÅ][a-zæøå]+(?:[ \-][A-ZÆØÅ][a-zæøå]+){0,3})/);
+    if (navnLinje) return navnLinje[1].trim();
+
+    // 3. Norsk førerkort-format: "2. ETTERNAVN Fornavn"
+    const fk = text.match(/2\.\s+([A-ZÆØÅ]{2,20})\s+([A-ZÆØÅ][a-zæøå]{1,15})/);
+    if (fk) return `${fk[2]} ${fk[1]}`;
+
+    // 4. Bankkort / bankID – første linje med to store ord
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    for (const line of lines.slice(0, 8)) {
+      const m = line.match(/^([A-ZÆØÅ][a-zæøå]{1,15})\s+([A-ZÆØÅ][a-zæøå]{1,20})$/);
+      if (m) return `${m[1]} ${m[2]}`;
+    }
+
+    return null;
+  }
+
+  function trekkUtAdresse(text) {
+    const adresse = { gate: null, postnr: null, sted: null };
+
+    // Gateadresse
+    const gate = text.match(/([A-ZÆØÅ][a-zæøå]+(?:veien|gata|gaten|vei|gate|vegen|allé|plass|torget|bakken)\s+\d+[A-Za-z]?)/i);
+    if (gate) adresse.gate = gate[1];
+
+    // Postnummer + sted
+    const postnrSted = text.match(/(\d{4})\s+([A-ZÆØÅ][a-zæøå]{2,})/);
+    if (postnrSted) {
+      adresse.postnr = postnrSted[1];
+      adresse.sted = postnrSted[2];
+    }
+
+    return adresse;
+  }
+
+  function loadTesseract() {
+    return new Promise((resolve, reject) => {
+      if (window.Tesseract) { tesseractReady = true; resolve(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = () => { tesseractReady = true; resolve(); };
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  function setOCRStatus(tekst, klasse) {
+    const el = document.getElementById('ocrStatus');
+    el.textContent = tekst;
+    el.className = klasse || '';
+  }
+
+  function clearLeg() {
+    legDataUrl = null;
+    document.getElementById('legPreview').style.display = 'none';
+    document.getElementById('legImg').src = '';
+    setOCRStatus('', '');
+  }
+
+  /* ── E-post ── */
+  function sendEpost() {
+    const d = hentSkjemadata();
+    const sigKunde    = pads.kunde?.toDataURL();
+    const sigMetallco = pads.metallco?.toDataURL();
+
+    const sjekklinjer = punkter.map((p, i) => {
+      const ja  = document.querySelector(`input[name="sjekk_${i}"][value="ja"]`)?.checked;
+      const nei = document.querySelector(`input[name="sjekk_${i}"][value="nei"]`)?.checked;
+      return `  ${p}: ${ja ? 'Ja' : nei ? 'Nei' : '–'}`;
+    }).join('\n');
+
+    const kropp =
+`MOTTAKSKONTROLL – VRAKBIL
+Metallco Kabel  |  Dato: ${d.dato}
+
+KUNDEINFORMASJON
+Navn:         ${d.navn}
+Adresse:      ${d.adresse}, ${d.postnr} ${d.sted}
+E-post:       ${d.epost}
+Telefon:      ${d.telefon}
+Kontonummer:  ${d.konto}
+
+KJØRETØY
+Regnr.: ${d.regnr}   Bilmerke: ${d.bilmerke}
+
+SJEKKLISTE
+${sjekklinjer}
+${d.avfall || d.maks5dekk ? '\nOBS: Bilen inneholder avfall eller mer enn 5 dekk — kr 500,- trekkes fra vrakpanten.' : ''}
+
+Se vedlegg for signert skjema og kopi av legitimasjon.`;
+
+    const emne = `Mottakskontroll vrakbil – ${d.regnr || d.navn || 'ny'}`;
+    window.location.href = `mailto:${encodeURIComponent(d.epost)}?subject=${encodeURIComponent(emne)}&body=${encodeURIComponent(kropp)}`;
+
+    // Generer og last ned komplett signert skjema som HTML-vedlegg
+    setTimeout(() => lastNedSkjema(d, sigKunde, sigMetallco), 400);
+    vis('E-post åpnet. Det signerte skjemaet lastes ned — legg det ved i Outlook.');
+  }
+
+  function lastNedSkjema(d, sigKunde, sigMetallco) {
+    const sjekkrader = punkter.map((p, i) => {
+      const ja  = document.querySelector(`input[name="sjekk_${i}"][value="ja"]`)?.checked;
+      const nei = document.querySelector(`input[name="sjekk_${i}"][value="nei"]`)?.checked;
+      const farge = ja ? '#16a34a' : nei ? '#dc2626' : '#888';
+      const svar  = ja ? 'Ja' : nei ? 'Nei' : '–';
+      return `<tr><td style="padding:6px 0;border-bottom:1px solid #f0f0f0">${p}</td>
+              <td style="text-align:center;color:${farge};font-weight:700;border-bottom:1px solid #f0f0f0">${svar}</td></tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html><html lang="no"><head><meta charset="UTF-8">
+<title>Mottakskontroll – Vrakbil</title>
+<style>
+  body{font-family:'Segoe UI',Arial,sans-serif;max-width:640px;margin:32px auto;color:#1a1a1a;font-size:14px}
+  h1{font-size:20px;margin-bottom:4px}
+  .dato{color:#888;font-size:13px;margin-bottom:24px}
+  .seksjon{margin-bottom:20px}
+  .seksjon h2{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+    color:#888;border-bottom:1.5px solid #e5e7eb;padding-bottom:4px;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse}
+  td{padding:4px 0;vertical-align:top}
+  td:first-child{color:#888;width:160px;font-size:13px}
+  .advarsel{background:#fff7f7;border:1.5px solid #fecaca;border-radius:6px;
+    padding:10px 14px;color:#dc2626;font-size:13px;margin:16px 0}
+  .sig-img{border:1px solid #e5e7eb;border-radius:6px;background:#fafafa;
+    max-width:100%;max-height:90px;display:block}
+  .sig-tom{color:#ccc;font-style:italic;font-size:13px}
+  .leg-img{max-width:220px;border-radius:6px;border:1px solid #e5e7eb;margin-top:6px}
+</style></head><body>
+<h1>Mottakskontroll – Vrakbil</h1>
+<div class="dato">Metallco Kabel &nbsp;|&nbsp; ${d.dato}</div>
+
+<div class="seksjon"><h2>Kundeinformasjon</h2>
+<table>
+  <tr><td>Navn</td><td>${d.navn}</td></tr>
+  <tr><td>Adresse</td><td>${d.adresse}, ${d.postnr} ${d.sted}</td></tr>
+  <tr><td>E-post</td><td>${d.epost}</td></tr>
+  <tr><td>Telefon</td><td>${d.telefon}</td></tr>
+  <tr><td>Kontonummer</td><td>${d.konto}</td></tr>
+</table></div>
+
+<div class="seksjon"><h2>Kjøretøy</h2>
+<table>
+  <tr><td>Regnr.</td><td>${d.regnr}</td></tr>
+  <tr><td>Bilmerke</td><td>${d.bilmerke}</td></tr>
+</table></div>
+
+<div class="seksjon"><h2>Sjekkliste</h2>
+<table>${sjekkrader}</table></div>
+
+${d.avfall || d.maks5dekk ? '<div class="advarsel">OBS: Bilen inneholder avfall eller mer enn 5 dekk — kr 500,- trekkes fra vrakpanten.</div>' : ''}
+
+<div class="seksjon"><h2>Signaturer</h2>
+<table>
+  <tr>
+    <td style="padding-right:20px">
+      <div style="font-size:12px;font-weight:600;color:#555;text-transform:uppercase;margin-bottom:4px">Signatur kunde</div>
+      ${sigKunde ? `<img class="sig-img" src="${sigKunde}" alt="Signatur kunde">` : '<div class="sig-tom">Ikke signert</div>'}
+    </td>
+    <td>
+      <div style="font-size:12px;font-weight:600;color:#555;text-transform:uppercase;margin-bottom:4px">Signatur Metallco Kabel</div>
+      ${sigMetallco ? `<img class="sig-img" src="${sigMetallco}" alt="Signatur Metallco">` : '<div class="sig-tom">Ikke signert</div>'}
+    </td>
+  </tr>
+</table></div>
+
+${legDataUrl ? `<div class="seksjon"><h2>Kopi av legitimasjon</h2>
+<img class="leg-img" src="${legDataUrl}" alt="Legitimasjon"></div>` : ''}
+
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `mottakskontroll_${d.regnr || 'vrakbil'}_${d.dato}.html`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  function lastNedLeg() {
+    if (!legDataUrl) return;
+    const a = document.createElement('a');
+    a.href = legDataUrl;
+    a.download = `legitimasjon_${document.getElementById('regnr').value || 'vrakbil'}.jpg`;
+    a.click();
+  }
+
+  function hentSkjemadata() {
+    const val = id => document.getElementById(id)?.value?.trim() || '';
+    return {
+      navn: val('navn'), adresse: val('adresse'),
+      postnr: val('postnr'), sted: val('sted'),
+      epost: val('epost'), telefon: val('telefon'), konto: val('konto'),
+      regnr: val('regnr'), bilmerke: val('bilmerke'),
+      dato: val('dato'),
+      avfall: document.querySelector('input[name="sjekk_3"][value="ja"]')?.checked,
+      maks5dekk: document.querySelector('input[name="sjekk_4"][value="ja"]')?.checked,
+    };
+  }
+
+  /* ── Nullstill ── */
+  function nullstill() {
+    document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"]')
+      .forEach(el => el.value = '');
+    document.querySelectorAll('input[type="radio"]').forEach(el => el.checked = false);
+    document.getElementById('dato').valueAsDate = new Date();
+    clearLeg();
+    vis('Skjemaet er nullstilt');
+  }
+
+  function skriv() { window.print(); }
+
+  function vis(melding) {
+    const t = document.getElementById('toast');
+    t.textContent = melding;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+</script>
+
+</body>
+</html>
