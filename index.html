@@ -570,7 +570,6 @@
 
   /* ── Legitimasjon / OCR ── */
   let legDataUrl = null;
-  let tesseractReady = false;
 
   document.getElementById('legFileInput').addEventListener('change', async e => {
     const file = e.target.files[0];
@@ -594,23 +593,38 @@
   });
 
   async function runOCR(imgEl) {
+    let worker = null;
     try {
-      if (!tesseractReady) {
+      if (!window.Tesseract) {
         setOCRStatus('Laster OCR-motor...', '');
         await loadTesseract();
       }
 
+      setOCRStatus('Laster...', '');
+
+      worker = await Tesseract.createWorker({
+        workerPath: 'https://unpkg.com/tesseract.js@4/dist/worker.min.js',
+        langPath:   'https://tessdata.projectnaptha.com/4.0.0',
+        corePath:   'https://unpkg.com/tesseract.js-core@4/tesseract-core.wasm.js',
+        logger: m => {
+          if (m.status === 'loading language traineddata')
+            setOCRStatus('Laster... ' + Math.round((m.progress || 0) * 100) + '%', '');
+          else if (m.status === 'recognizing text')
+            setOCRStatus('Analyserer... ' + Math.round((m.progress || 0) * 100) + '%', '');
+        }
+      });
+
+      await worker.loadLanguage('nor+eng');
+      await worker.initialize('nor+eng');
+
       setOCRStatus('Analyserer bilde...', '');
 
-      const result = await Tesseract.recognize(imgEl, 'nor+eng');
-      const text = result.data.text;
+      const { data: { text } } = await worker.recognize(imgEl);
 
       const navn = trekkUtNavn(text);
       const adresse = trekkUtAdresse(text);
 
-      if (navn) {
-        document.getElementById('navn').value = navn;
-      }
+      if (navn) document.getElementById('navn').value = navn;
       if (adresse.gate) document.getElementById('adresse').value = adresse.gate;
       if (adresse.postnr) document.getElementById('postnr').value = adresse.postnr;
       if (adresse.sted) document.getElementById('sted').value = adresse.sted;
@@ -618,14 +632,17 @@
       document.getElementById('ocrOverlay').style.display = 'none';
 
       if (navn) {
-        setOCRStatus(`Navn lest: ${navn}`, 'ok');
+        setOCRStatus('Navn lest: ' + navn, 'ok');
       } else {
         setOCRStatus('Navn ikke gjenkjent – fyll inn manuelt', 'err');
       }
 
     } catch (err) {
+      console.error('OCR error:', err);
       document.getElementById('ocrOverlay').style.display = 'none';
       setOCRStatus('Kunne ikke lese bildet. Fyll inn manuelt.', 'err');
+    } finally {
+      if (worker) try { await worker.terminate(); } catch (e) {}
     }
   }
 
@@ -675,10 +692,10 @@
 
   function loadTesseract() {
     return new Promise((resolve, reject) => {
-      if (window.Tesseract) { tesseractReady = true; resolve(); return; }
+      if (window.Tesseract) { resolve(); return; }
       const s = document.createElement('script');
-      s.src = 'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js';
-      s.onload = () => { tesseractReady = true; resolve(); };
+      s.src = 'https://unpkg.com/tesseract.js@4/dist/tesseract.min.js';
+      s.onload = resolve;
       s.onerror = reject;
       document.head.appendChild(s);
     });
