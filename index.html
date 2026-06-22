@@ -758,7 +758,13 @@ Se vedlegg for signert skjema og kopi av legitimasjon.`;
 
     const emne = `Mottakskontroll vrakbil – ${d.regnr || d.navn || 'ny'}`;
     const cc = d.epost ? `&cc=${encodeURIComponent(d.epost)}` : '';
-    window.location.href = `mailto:kabel%40metallco.com?subject=${encodeURIComponent(emne)}&body=${encodeURIComponent(kropp)}${cc}`;
+    const mailtoUrl = `mailto:kabel%40metallco.com?subject=${encodeURIComponent(emne)}&body=${encodeURIComponent(kropp)}${cc}`;
+    const a = document.createElement('a');
+    a.href = mailtoUrl;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 200);
 
     // Generer og last ned komplett signert skjema som HTML-vedlegg
     setTimeout(() => lastNedSkjema(d, sigKunde, sigMetallco), 400);
